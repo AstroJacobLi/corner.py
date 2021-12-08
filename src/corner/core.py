@@ -64,6 +64,12 @@ def corner_impl(
 
     # Deal with 1D sample lists.
     xs = _parse_input(xs)
+    if xs.ndim == 3:
+        xs_ensemble = xs.copy()
+        xs = xs.reshape((xs.shape[0], -1))
+    else:
+        xs_ensemble = None
+
     assert xs.shape[0] <= xs.shape[1], (
         "I don't believe that you want more " "dimensions than samples!"
     )
@@ -186,6 +192,14 @@ def corner_impl(
                 range=np.sort(range[i]),
                 **hist_kwargs,
             )
+            if xs_ensemble is not None:
+                for _x in xs_ensemble[i].T:
+                    n_i, _, _ = ax.hist(_x,
+                                        bins=bins_1d,
+                                        weights=weights,
+                                        range=np.sort(range[i]),
+                                        **hist_kwargs,
+                                        )
         else:
             if gaussian_filter is None:
                 raise ImportError("Please install scipy for smoothing")
@@ -462,7 +476,6 @@ def hist2d(
     new_fig=True,
     **kwargs
 ):
-
     """
     Plot a 2-D histogram of samples.
 
@@ -774,9 +787,11 @@ def _parse_input(xs):
     xs = np.atleast_1d(xs)
     if len(xs.shape) == 1:
         xs = np.atleast_2d(xs)
-    else:
-        assert len(xs.shape) == 2, "The input sample array must be 1- or 2-D."
+    elif len(xs.shape) == 2:
         xs = xs.T
+    else:
+        shape = xs.shape
+        xs = xs.reshape(shape[1], shape[0], shape[2])
     return xs
 
 
