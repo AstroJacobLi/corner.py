@@ -43,6 +43,7 @@ def corner(
     reverse=False,
     labelpad=0.0,
     hist_kwargs=None,
+    ebar_kwargs=None,
     # Arviz parameters
     group="posterior",
     var_names=None,
@@ -197,6 +198,9 @@ def corner(
     hist_kwargs : dict
         Any extra keyword arguments to send to the 1-D histogram plots.
 
+    ebar_kwargs : dict
+        Any extra keyword arguments to send to the errorbars of 1-D histogram plots.
+
     **hist2d_kwargs
         Any remaining keyword arguments are sent to :func:`corner.hist2d` to
         generate the 2-D histogram plots.
@@ -250,6 +254,7 @@ def corner(
             reverse=reverse,
             labelpad=labelpad,
             hist_kwargs=hist_kwargs,
+            ebar_kwargs=ebar_kwargs,
             **hist2d_kwargs,
         )
 

@@ -49,6 +49,8 @@ def corner_impl(
     reverse=False,
     labelpad=0.0,
     hist_kwargs=None,
+    plot_ebar=False,
+    ebar_kwargs=None,
     **hist2d_kwargs
 ):
     if quantiles is None:
@@ -168,6 +170,12 @@ def corner_impl(
     hist_kwargs["color"] = hist_kwargs.get("color", color)
     if smooth1d is None:
         hist_kwargs["histtype"] = hist_kwargs.get("histtype", "step")
+    if ebar_kwargs is None:
+        ebar_kwargs = dict()
+        ebar_kwargs["color"] = hist_kwargs["color"]
+        ebar_kwargs["capsize"] = ebar_kwargs.get("capsize", 2)
+        ebar_kwargs["linewidth"] = ebar_kwargs.get("linewidth", 1)
+        ebar_kwargs["fmt"] = ebar_kwargs.get("fmt", '.')
 
     for i, x in enumerate(xs):
         # Deal with masked arrays.
@@ -190,16 +198,31 @@ def corner_impl(
                 bins=bins_1d,
                 weights=weights,
                 range=np.sort(range[i]),
-                **hist_kwargs,
-            )
+                **hist_kwargs,)
             if xs_ensemble is not None:
+                n_i_set = []
                 for _x in xs_ensemble[i].T:
-                    n_i, _, _ = ax.hist(_x,
-                                        bins=bins_1d,
-                                        weights=weights,
-                                        range=np.sort(range[i]),
-                                        **hist_kwargs,
-                                        )
+                    n_i, _bins, = np.histogram(_x,
+                                               bins=bins_1d,
+                                               weights=weights,
+                                               range=np.sort(range[i]),
+                                               density=hist_kwargs['density'],
+                                               )
+                    n_i_set.append(n_i)
+                n_i_set = np.array(n_i_set)
+                centers = _bins[:-1] + np.diff(_bins)/2
+                diff = n_i_set - n
+                if plot_ebar:
+                    ax.errorbar(centers, n,
+                                yerr=[-np.min(diff, axis=0),
+                                      np.max(diff, axis=0)],
+                                **ebar_kwargs)
+                    # ax.errorbar(centers, n,
+                    #             yerr=np.std(diff, axis=0, ddof=1),
+                    #             fmt='.', capsize=2)
+                ax.fill_between(centers, n + np.min(diff, axis=0), n + np.max(diff, axis=0),
+                                alpha=0.3, color=hist_kwargs['color'])
+
         else:
             if gaussian_filter is None:
                 raise ImportError("Please install scipy for smoothing")
@@ -259,18 +282,23 @@ def corner_impl(
         # Set up the axes.
         _set_xlim(new_fig, ax, range[i])
         if scale_hist:
-            maxn = np.max(n)
+            maxn = np.max(n) if xs_ensemble is None else np.max(
+                np.max(n_i_set))
             _set_ylim(new_fig, ax, [-0.1 * maxn, 1.1 * maxn])
 
         else:
-            _set_ylim(new_fig, ax, [0, 1.1 * np.max(n)])
+            if xs_ensemble is not None:
+                _set_ylim(new_fig, ax, [0, 1.05 * np.max(n_i_set)])
+            else:
+                _set_ylim(new_fig, ax, [0, 1.1 * np.max(n)])
 
         ax.set_yticklabels([])
         if max_n_ticks == 0:
             ax.xaxis.set_major_locator(NullLocator())
             ax.yaxis.set_major_locator(NullLocator())
         else:
-            ax.xaxis.set_major_locator(MaxNLocator(max_n_ticks, prune="lower"))
+            ax.xaxis.set_major_locator(
+                MaxNLocator(max_n_ticks, prune="lower"))
             ax.yaxis.set_major_locator(NullLocator())
 
         if i < K - 1:
@@ -789,9 +817,8 @@ def _parse_input(xs):
         xs = np.atleast_2d(xs)
     elif len(xs.shape) == 2:
         xs = xs.T
-    else:
-        shape = xs.shape
-        xs = xs.reshape(shape[1], shape[0], shape[2])
+    elif len(xs.shape) == 3:  # ensemble input
+        xs = xs.swapaxes(0, 1)
     return xs
 
 
