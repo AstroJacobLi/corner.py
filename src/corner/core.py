@@ -193,22 +193,37 @@ def corner_impl(
         # Plot the histograms.
         if smooth1d is None:
             bins_1d = int(max(1, np.round(hist_bin_factor[i] * bins[i])))
+            lw = hist_kwargs.get('lw', 1.5)
+            if 'lw' in hist_kwargs:
+                hist_kwargs.pop('lw')
+
             n, _, _ = ax.hist(
                 x,
                 bins=bins_1d,
                 weights=weights,
                 range=np.sort(range[i]),
+                lw=lw,
                 **hist_kwargs,)
             if xs_ensemble is not None:
                 n_i_set = []
                 for _x in xs_ensemble[i].T:
-                    n_i, _bins, = np.histogram(_x,
-                                               bins=bins_1d,
-                                               weights=weights,
-                                               range=np.sort(range[i]),
-                                               density=hist_kwargs['density'],
-                                               )
+                    n_i, _bins, _ = ax.hist(
+                        _x,
+                        bins=bins_1d,
+                        weights=weights,
+                        range=np.sort(range[i]),
+                        alpha=0.4,
+                        lw=lw,
+                        **hist_kwargs,
+                    )
                     n_i_set.append(n_i)
+                    # n_i, _bins, = np.histogram(_x,
+                    #                            bins=bins_1d,
+                    #                            weights=weights,
+                    #                            range=np.sort(range[i]),
+                    #                            density=hist_kwargs['density'],
+                    #                            )
+                    # n_i_set.append(n_i)
                 n_i_set = np.array(n_i_set)
                 centers = _bins[:-1] + np.diff(_bins)/2
                 diff = n_i_set - n
@@ -220,6 +235,8 @@ def corner_impl(
                     # ax.errorbar(centers, n,
                     #             yerr=np.std(diff, axis=0, ddof=1),
                     #             fmt='.', capsize=2)
+                # ax.fill_between(centers, n - np.std(diff, axis=0), n + np.std(diff, axis=0),
+                #                 alpha=0.4, color=hist_kwargs['color'])
                 ax.fill_between(centers, n + np.min(diff, axis=0), n + np.max(diff, axis=0),
                                 alpha=0.3, color=hist_kwargs['color'])
 
@@ -288,7 +305,7 @@ def corner_impl(
 
         else:
             if xs_ensemble is not None:
-                _set_ylim(new_fig, ax, [0, 1.05 * np.max(n_i_set)])
+                _set_ylim(new_fig, ax, [0, np.max(n + np.std(diff, axis=0))])
             else:
                 _set_ylim(new_fig, ax, [0, 1.1 * np.max(n)])
 
