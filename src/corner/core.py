@@ -194,16 +194,18 @@ def corner_impl(
         if smooth1d is None:
             bins_1d = int(max(1, np.round(hist_bin_factor[i] * bins[i])))
             lw = hist_kwargs.get('lw', 1.5)
-            if 'lw' in hist_kwargs:
-                hist_kwargs.pop('lw')
+            _hist_kwargs = dict(hist_kwargs)
+            if 'lw' in _hist_kwargs:
+                _hist_kwargs.pop('lw')
 
             n, _, _ = ax.hist(
                 x,
                 bins=bins_1d,
                 weights=weights,
                 range=np.sort(range[i]),
-                lw=lw,
-                **hist_kwargs,)
+                alpha=0.8,
+                lw=3.5,
+                **_hist_kwargs,)
             if xs_ensemble is not None:
                 n_i_set = []
                 for _x in xs_ensemble[i].T:
@@ -212,9 +214,9 @@ def corner_impl(
                         bins=bins_1d,
                         weights=weights,
                         range=np.sort(range[i]),
-                        alpha=0.4,
+                        alpha=0.2,
                         lw=lw,
-                        **hist_kwargs,
+                        **_hist_kwargs,
                     )
                     n_i_set.append(n_i)
                     # n_i, _bins, = np.histogram(_x,
@@ -225,7 +227,7 @@ def corner_impl(
                     #                            )
                     # n_i_set.append(n_i)
                 n_i_set = np.array(n_i_set)
-                centers = _bins[:-1] + np.diff(_bins)/2
+                centers = _bins[:-1] + np.diff(_bins) / 2
                 diff = n_i_set - n
                 if plot_ebar:
                     ax.errorbar(centers, n,
@@ -238,7 +240,7 @@ def corner_impl(
                 # ax.fill_between(centers, n - np.std(diff, axis=0), n + np.std(diff, axis=0),
                 #                 alpha=0.4, color=hist_kwargs['color'])
                 ax.fill_between(centers, n + np.min(diff, axis=0), n + np.max(diff, axis=0),
-                                alpha=0.3, color=hist_kwargs['color'])
+                                alpha=0.1, color=_hist_kwargs['color'])
 
         else:
             if gaussian_filter is None:
@@ -305,7 +307,8 @@ def corner_impl(
 
         else:
             if xs_ensemble is not None:
-                _set_ylim(new_fig, ax, [0, np.max(n + np.std(diff, axis=0))])
+                _set_ylim(new_fig, ax, [0, np.nanmax(
+                    n + np.nanstd(diff, axis=0))])
             else:
                 _set_ylim(new_fig, ax, [0, 1.1 * np.max(n)])
 
